@@ -18,6 +18,9 @@ namespace RSAEncryption
         RSACryptoServiceProvider RSA = new RSACryptoServiceProvider();
         byte[] plaintext;
         byte[] encryptedtext;
+
+        bool toFile = false;
+        bool fromFile = false;
         public Form1()
         {
             InitializeComponent();
@@ -33,6 +36,9 @@ namespace RSAEncryption
             label2.Visible = false;
             textBox2.Visible = false;
             decryptButton.Visible = false;
+
+            checkBox1.Visible = false;
+            checkBox2.Visible = true;
         }
 
         private void radioButton2_CheckedChanged(object sender, EventArgs e)
@@ -44,6 +50,10 @@ namespace RSAEncryption
             label2.Visible = true;
             textBox2.Visible = true;
             decryptButton.Visible = true;
+            checkBox1.Visible = true;
+            checkBox2.Visible = false;
+
+            textBox2.Text = resultTextBox.Text;
         }
 
         private void encryptButton_Click(object sender, EventArgs e)
@@ -51,22 +61,27 @@ namespace RSAEncryption
             try
             {
                 string Path = null;
-                plaintext = Convert.FromBase64String(textBox1.Text);
+
+                Encoding encoding = Encoding.GetEncoding("437");
+                plaintext = encoding.GetBytes(textBox1.Text);
                 encryptedtext = Encryption(plaintext, RSA.ExportParameters(false), false);
-                using (var sfd = new SaveFileDialog())
+                if (toFile == true)
                 {
-                    sfd.Filter = "txt files (*.txt)|*.txt";
-                    sfd.RestoreDirectory = true;
-                    if (sfd.ShowDialog() == DialogResult.OK)
+                    using (var sfd = new SaveFileDialog())
                     {
-                        Path = sfd.FileName;
+                        sfd.Filter = "txt files (*.txt)|*.txt";
+                        sfd.RestoreDirectory = true;
+                        if (sfd.ShowDialog() == DialogResult.OK)
+                        {
+                            Path = sfd.FileName;
+                        }
+                    }
+                    using (StreamWriter writer = new StreamWriter(Path))
+                    {
+                        writer.Write(encoding.GetString(encryptedtext));
                     }
                 }
-                using (StreamWriter writer = new StreamWriter(Path))
-                {
-                    writer.Write(Convert.ToBase64String(encryptedtext));
-                }
-                resultTextBox.Text = Convert.ToBase64String(encryptedtext);
+                resultTextBox.Text = encoding.GetString(encryptedtext);
             }
             catch (ArgumentNullException)
             {
@@ -76,19 +91,54 @@ namespace RSAEncryption
 
         private void decryptButton_Click(object sender, EventArgs e)
         {
-            //byte[] temp_Data = Convert.FromBase64String(LibraryEncodedTextBox.Text);
-            try
-            {
-                plaintext = Convert.FromBase64String(textBox2.Text);
-                byte[] decryptedtex = Decryption(plaintext,
-                RSA.ExportParameters(true), false);
-                resultTextBox.Text = Convert.ToBase64String(decryptedtex);
+            Encoding encoding = Encoding.GetEncoding("437");
 
-            }
-            catch (Exception ex)
+            if (fromFile == true)
             {
-                MessageBox.Show(ex.Message);
-                Console.WriteLine("Encryption failed.");
+                var content = string.Empty; ;
+                using (OpenFileDialog ofd = new OpenFileDialog())
+                {
+                    string path;
+                    ofd.Filter = "txt files (*.txt)|*.txt";
+                    ofd.RestoreDirectory = true;
+                    if (ofd.ShowDialog() == DialogResult.OK)
+                    {
+                        path = ofd.FileName;
+                        var data = ofd.OpenFile();
+                        using (StreamReader sr = new StreamReader(data))
+                        {
+                            content = sr.ReadToEnd();
+                        }
+                    }
+                }
+                try
+                {
+
+                    byte[] decryptedtex = Decryption(encoding.GetBytes(content),
+                    RSA.ExportParameters(true), false);
+                    resultTextBox.Text = encoding.GetString(decryptedtex);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message);
+                    Console.WriteLine("Encryption failed.");
+                }
+            }
+            else
+            {
+                try
+                {
+                    plaintext = encoding.GetBytes(textBox2.Text);
+                    byte[] decryptedtex = Decryption(plaintext,
+                    RSA.ExportParameters(true), false);
+                    resultTextBox.Text = encoding.GetString(decryptedtex);
+
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message);
+                    Console.WriteLine("Encryption failed.");
+                }
             }
         }
 
@@ -136,34 +186,36 @@ namespace RSAEncryption
         private void button1_Click(object sender, EventArgs e)
         {
 
-            var content = string.Empty; ;
-            using (OpenFileDialog ofd = new OpenFileDialog())
-            {
-                string path;
-                ofd.Filter = "txt files (*.txt)|*.txt";
-                ofd.RestoreDirectory = true;
-                if (ofd.ShowDialog() == DialogResult.OK)
-                {
-                    path = ofd.FileName;
-                    var data = ofd.OpenFile();
-                    using (StreamReader sr = new StreamReader(data))
-                    {
-                        content = sr.ReadToEnd();
-                    }
-                }
-            }
-            try
-            {
+       
+        }
 
-                byte[] decryptedtex = Decryption(Convert.FromBase64String(content),
-                RSA.ExportParameters(true), false);
-                resultTextBox.Text = Convert.ToBase64String(decryptedtex);
-            }
-            catch (Exception ex)
+        private void checkBox1_CheckedChanged(object sender, EventArgs e)
+        {
+            if (fromFile == false)
             {
-                MessageBox.Show(ex.Message);
-                Console.WriteLine("Encryption failed.");
+                fromFile = true;
             }
+            else
+            {
+                fromFile = false;
+            }
+        }
+
+        private void checkBox2_CheckedChanged(object sender, EventArgs e)
+        {
+            if (toFile == false)
+            {
+                toFile = true;
+            }
+            else
+            {
+                toFile = false;
+            }
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+
         }
     }
 }
